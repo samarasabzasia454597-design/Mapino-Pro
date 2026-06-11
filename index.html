@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapino Pro v2</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css"/>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    overflow:hidden;
+}
+
+#map{
+    position:fixed;
+    width:100%;
+    height:100%;
+    top:0;
+    left:0;
+    bottom:0;
+}
+/* TOOLS */
+#tools{
+    position:absolute;
+    top:120px;
+    right:10px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    z-index:9999;
+}
+#backBtn{
+    position:absolute;
+    top:20px;
+    left:20px;
+
+    padding:14px 20px;
+    border:none;
+    border-radius:12px;
+
+    background:red;
+    color:white;
+
+    font-size:16px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    z-index:100000;
+}
+
+.circle{
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    border:none;
+    cursor:pointer;
+    color:white;
+}
+
+.blue{background:#3498db;}
+.green{background:#2ecc71;}
+.red{background:#e74c3c;}
+.dark{background:#2c3e50;}
+
+/* SEARCH */
+#searchBox{
+    position:absolute;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    width:85%;
+    gap:8px;
+    z-index:9999;
+}
+
+#searchInput{
+    flex:1;
+    padding:12px;
+    border-radius:12px;
+    border:none;
+    outline:none;
+}
+
+#searchBtn{
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:#2ecc71;
+    color:white;
+}
+
+/* PANELS */
+#toolsPanel,#flightPanel{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    display:none;
+    z-index:20000;
+    background:rgba(0,0,0,0.4);
+    backdrop-filter:blur(10px);
+    color:white;
+    text-align:center;
+}
+
+/* BUTTONS */
+#flightPanel{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    display:none;
+    z-index:99999;
+    background:black;
+}
+
+#flightBack{
+    position:absolute;
+    top:20px;
+    left:20px;
+
+    padding:14px 20px;
+    border:none;
+    border-radius:12px;
+
+    background:red;
+    color:white;
+
+    font-size:16px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    z-index:100000;
+}
+#flightBtn{
+    margin-top:120px;
+    width:80%;
+    height:60px;
+    border:none;
+    border-radius:16px;
+    background:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+}
+#flightBtn{
+    width:350px;
+    height:70px;
+
+    display:block;
+    margin:15px auto;
+
+    border:none;
+    border-radius:18px;
+
+    background:white;
+    color:black;
+
+    font-size:20px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+#compassBtn{
+    width:350px;
+    height:70px;
+
+    display:block;
+    margin:15px auto;
+
+    border:none;
+    border-radius:18px;
+
+    background:white;
+    color:black;
+
+    font-size:20px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+/* FLIGHT MAP */
+#flightMap{
+    width:100%;
+    height:100%;
+}
+#compassPanel{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+
+    display:none;
+    z-index:99999;
+
+    background:black;
+    color:white;
+
+    text-align:center;
+}
+
+#compassBox{
+    margin-top:150px;
+    font-size:60px;
+}
+
+#compassBack{
+    position:absolute;
+    top:20px;
+    left:20px;
+
+    padding:14px 20px;
+    border:none;
+    border-radius:12px;
+
+    background:red;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+
+    cursor:pointer;
+}
+#googleMapBtn{
+    width:350px;
+    height:70px;
+
+    display:block;
+    margin:15px auto;
+
+    border:none;
+    border-radius:18px;
+
+    background:white;
+    color:black;
+
+    font-size:18px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+
+/* panel */
+#googlePanel{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+
+    display:none;
+    z-index:99999;
+}
+
+/* map */
+#googleMapFrame{
+    width:100%;
+    height:100%;
+}
+
+/* back button ALWAYS visible */
+#googleBack{
+    position:fixed;
+    top:20px;
+    left:20px;
+    z-index:100000;
+
+    padding:14px 20px;
+    border:none;
+    border-radius:14px;
+
+    background:red;
+    color:white;
+    font-weight:bold;
+}
+#liveCompassBtn{
+    position:fixed;
+    left:20px;
+    bottom:270px;
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    border:none;
+    background:white;
+    color:black;
+    cursor:pointer;
+    z-index:99999;
+}
+#loginBtn{
+    position:fixed;
+    top:10px;
+    right:10px;
+
+    padding:10px 14px;
+
+    border:none;
+    border-radius:20px;
+
+    background:white;
+    color:black;
+
+    font-size:14px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    z-index:99999;
+
+    box-shadow:0 6px 15px rgba(0,0,0,0.2);
+}
+#loginPanel{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+
+    display:none;
+    background:rgba(0,0,0,0.6);
+
+    z-index:999999;
+}
+
+#loginBox{
+    width:80%;
+    max-width:300px;
+
+    margin:120px auto;
+    padding:20px;
+
+    background:white;
+    border-radius:15px;
+    text-align:center;
+}
+
+#loginBox input{
+    width:90%;
+    margin:8px 0;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ccc;
+}
+
+#loginBox button{
+    margin:5px;
+    padding:10px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+#sendCodeBtn{
+    background:#3498db;
+    color:white;
+}
+
+#loginSubmitBtn{
+    background:#2ecc71;
+    color:white;
+}
+
+#loginBack{
+    position:absolute;
+    top:15px;
+    left:15px;
+
+    background:red;
+    color:white;
+    border:none;
+    padding:8px 12px;
+    border-radius:8px;
+
+    cursor:pointer;
+}
+#routeBtn{
+    position:fixed;
+    bottom:90px;
+    right:20px;
+
+    width:55px;
+    height:55px;
+    border-radius:50%;
+
+    border:none;
+    background:#3498db;
+    color:white;
+    font-size:22px;
+
+    z-index:99999;
+    cursor:pointer;
+    box-shadow:0 8px 20px rgba(0,0,0,0.3);
+}
+
+/* PANEL */
+#routePanel{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+
+    background:white;
+    display:none;
+    z-index:999999;
+    padding:20px;
+}
+
+/* BACK BUTTON */
+#routeBack{
+    background:red;
+    color:white;
+    border:none;
+    padding:10px 14px;
+    border-radius:10px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- Route Button -->
+<button id="routeBtn">🧭 Route</button>
+
+<!-- TOOLS -->
+<div id="tools">
+
+    <button class="circle blue" id="osm">🗺</button>
+    <button class="circle dark" id="sat">🛰</button>
+    <button class="circle green" id="pinMode">📍</button>
+    <button class="circle red" id="clearPin">🧹</button>
+    <button class="circle blue" id="draw">✍️</button>
+    <button class="circle dark" id="toolsBtn">🔧</button>
+    <button class="circle dark" id="liveCompassBtn">📡</button>
+
+    <button id="loginBtn">Log in</button>
+
+</div>
+
+<!-- SEARCH -->
+<div id="searchBox">
+    <input id="searchInput" placeholder="Search location...">
+    <button id="searchBtn">Search</button>
+</div>
+
+<!-- TOOLS PANEL -->
+<div id="toolsPanel">
+
+    <button id="backBtn">Back</button>
+
+    <h2>Mapino Tools</h2>
+
+    <button id="flightBtn">✈️ Flight</button>
+    <button id="compassBtn">🧭 Compass</button>
+    <button id="googleMapBtn">⚡️ Fast Map</button>
+
+</div>
+
+<!-- FLIGHT PANEL -->
+<div id="flightPanel">
+    <button id="flightBack">Back</button>
+    <div id="flightMap"></div>
+</div>
+
+<!-- COMPASS PANEL -->
+<div id="compassPanel">
+    <button id="compassBack">Back</button>
+    <div id="compassBox">
+        🧭 <span id="compassText">0°</span>
+    </div>
+</div>
+
+<!-- GOOGLE PANEL -->
+<div id="googlePanel">
+    <button id="googleBack">Back</button>
+    <div id="googleMapFrame"></div>
+</div>
+
+<!-- LOGIN PANEL -->
+<div id="loginPanel">
+
+    <button id="loginBack">Back</button>
+
+    <div id="loginBox">
+
+        <h3>Login</h3>
+
+        <input id="phoneInput" placeholder="Phone number">
+        <input id="codeInput" placeholder="SMS code">
+
+        <button id="sendCodeBtn">Send Code</button>
+        <button id="loginSubmitBtn">Login</button>
+
+    </div>
+
+</div>
+
+<!-- ROUTE PANEL -->
+<div id="routePanel">
+
+    <button id="routeBack">Back</button>
+
+    <h3>Route Finder</h3>
+
+    <p>Click map → Start & Destination</p>
+
+    <button id="startRoute">Start Navigation</button>
+
+    <div id="routeInfo"></div>
+
+</div>
+
+<!-- TEST BUTTON (for debug) -->
+<button
+id="routeBtnTest"
+style="
+position:fixed;
+right:20px;
+bottom:90px;
+width:60px;
+height:60px;
+border-radius:50%;
+background:red;
+color:white;
+z-index:99999999;
+border:none;
+">
+R
+</button>
+
+</body>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+
+<script>
+/* ================= MAP ================= */
+let map = L.map('map').setView([32.4279,53.6880],5);
+
+let osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+
+let osm2 = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
+
+let osm3 = L.tileLayer('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png');
+osm.addTo(map);
+osm.on('tileerror', function(){
+
+    map.removeLayer(osm);
+
+    osm2.addTo(map);
+
+    console.log("OSM1 failed");
+
+});
+
+osm2.on('tileerror', function(){
+
+    map.removeLayer(osm2);
+
+    osm3.addTo(map);
+
+    console.log("OSM2 failed");
+
+});
+
+let sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+
+/* ================= LAYERS ================= */
+document.getElementById("osm").onclick = ()=>{
+    map.addLayer(osm);
+    map.removeLayer(sat);
+};
+
+document.getElementById("sat").onclick = ()=>{
+    map.addLayer(sat);
+    map.removeLayer(osm);
+};
+
+/* ================= MARKER ================= */
+let marker=null;
+
+/* ================= SEARCH (FIXED) ================= */
+function searchPlace(){
+
+    let q=document.getElementById("searchInput").value;
+    if(!q)return;
+
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
+    .then(r=>r.json())
+    .then(data=>{
+
+        if(!data.length)return;
+
+        let p=data[0];
+
+        map.setView([p.lat,p.lon],12);
+
+        if(marker) map.removeLayer(marker);marker=L.marker([p.lat,p.lon]).addTo(map)
+        .bindPopup(p.display_name)
+        .openPopup();
+    });
+}
+
+document.getElementById("searchBtn").onclick=searchPlace;
+
+/* ================= TOOLS PANEL ================= */
+document.getElementById("toolsBtn").onclick=()=>{
+    document.getElementById("toolsPanel").style.display="block";
+};
+
+document.getElementById("backBtn").onclick=()=>{
+    document.getElementById("toolsPanel").style.display="none";
+};
+
+/* ================= PIN ================= */
+let pinMode=false;
+
+document.getElementById("pinMode").onclick=()=>{
+    pinMode=!pinMode;
+};
+
+map.on("click",(e)=>{
+    if(pinMode){
+        if(marker) map.removeLayer(marker);
+        marker=L.marker(e.latlng).addTo(map);
+    }
+});
+
+/* ================= CLEAR ================= */
+document.getElementById("clearPin").onclick=()=>{
+    if(marker){
+        map.removeLayer(marker);
+        marker=null;
+    }
+};
+
+/* ================= DRAW ================= */
+let drawnItems=new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+let drawControl=new L.Control.Draw({
+    draw:{polyline:true,polygon:true,circle:false,rectangle:false,marker:false},
+    edit:{featureGroup:drawnItems}
+});
+
+map.addControl(drawControl);
+
+map.on(L.Draw.Event.CREATED,(e)=>{
+    drawnItems.addLayer(e.layer);
+});
+
+/* ================= FLIGHT ================= */
+let flightMap=null;
+let flightLayer=null;
+
+document.getElementById("flightBtn").onclick=()=>{
+
+    document.getElementById("flightPanel").style.display="block";
+    document.getElementById("toolsPanel").style.display="none";
+
+    setTimeout(()=>{
+
+        if(!flightMap){
+
+            flightMap=L.map('flightMap').setView([20,0],2);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(flightMap);
+
+            flightLayer=L.layerGroup().addTo(flightMap);
+
+            loadFlights();
+
+            setInterval(loadFlights,8000);
+        }
+
+        flightMap.invalidateSize();
+
+    },200);
+};
+
+document.getElementById("flightBack").onclick=()=>{
+    document.getElementById("flightPanel").style.display="none";
+    document.getElementById("toolsPanel").style.display="block";
+};
+
+function loadFlights(){
+
+    fetch("https://opensky-network.org/api/states/all")
+    .then(r=>r.json())
+    .then(data=>{
+
+        if(!flightLayer) return;
+
+        flightLayer.clearLayers();
+
+        if(!data.states) return;
+
+        data.states.forEach(s=>{
+
+            let lat=s[6];
+            let lon=s[5];
+
+            if(lat&&lon){
+                L.circleMarker([lat,lon],{
+                    radius:3,
+                    color:"yellow"
+                }).addTo(flightLayer);
+            }
+        });
+    })
+    .catch(()=>{});
+}
+document.getElementById("compassBtn").onclick = ()=>{
+
+    document.getElementById("toolsPanel").style.display = "none";
+    document.getElementById("compassPanel").style.display = "block";
+
+};
+
+document.getElementById("compassBack").onclick = ()=>{
+
+    document.getElementById("compassPanel").style.display = "none";
+    document.getElementById("toolsPanel").style.display = "block";
+
+};
+if (window.DeviceOrientationEvent) {
+
+    window.addEventListener("deviceorientation", (event)=>{
+
+        let heading = event.webkitCompassHeading || event.alpha;
+
+        let el = document.getElementById("compassText");
+
+        if(el && heading !== null && heading !== undefined){
+            el.innerText = Math.round(heading) + "°";
+        }
+
+    }, true);
+
+}
+document.getElementById("googleMapBtn").onclick = ()=>{
+
+    document.getElementById("toolsPanel").style.display = "none";
+    document.getElementById("googlePanel").style.display = "block";
+
+    document.getElementById("googleMapFrame").innerHTML = `
+        <iframe
+            width="100%"
+            height="100%"
+            style="border:0"
+            loading="lazy"
+            src="https://www.google.com/maps?q=32.4279,53.6880&z=5&output=embed">
+        </iframe>
+    `;
+};
+
+document.getElementById("googleBack").onclick = ()=>{
+
+    document.getElementById("googlePanel").style.display = "none";
+    document.getElementById("toolsPanel").style.display = "block";
+};
+let tracking = false;
+let watchId = null;
+let userMarker = null;
+
+document.getElementById("liveCompassBtn").onclick = () => {
+
+    tracking = !tracking;
+
+    if(tracking){
+
+        if(!navigator.geolocation){
+            alert("GPS not supported");
+            return;
+        }
+
+        watchId = navigator.geolocation.watchPosition(
+        (pos)=>{
+
+            let lat = pos.coords.latitude;
+            let lon = pos.coords.longitude;
+
+            console.log("GPS:", lat, lon);
+
+            // زوم نرم روی کاربر
+            map.setView([lat, lon], 16, {animate:true});
+
+            // مارکر قبلی حذف شود
+            if(userMarker){
+                map.removeLayer(userMarker);
+            }
+
+            userMarker = L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup("📡 You are here")
+                .openPopup();
+
+        },
+        (err)=>{
+            alert("GPS error: " + err.message);
+            console.log(err);
+        },
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 10000
+        });
+
+        alert("📡 Tracking ON");
+
+    } else {
+
+        if(watchId){
+            navigator.geolocation.clearWatch(watchId);
+        }
+
+        alert("📡 Tracking OFF");
+    }
+};
+let generatedCode = "";
+let savedPhone = "";
+
+document.getElementById("loginBtn").onclick = () => {
+    document.getElementById("loginPanel").style.display = "block";
+};
+
+document.getElementById("loginBack").onclick = () => {
+    document.getElementById("loginPanel").style.display = "none";
+};
+
+/* ================= SEND CODE ================= */
+document.getElementById("sendCodeBtn").onclick = () => {
+
+    savedPhone = document.getElementById("phoneInput").value.trim();
+
+    if(savedPhone === ""){
+        alert("📱 Enter phone number");
+        return;
+    }
+
+    generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    alert("📩 Your Code: " + generatedCode);
+};
+
+/* ================= LOGIN ================= */
+document.getElementById("loginSubmitBtn").onclick = () => {
+
+    let phone = document.getElementById("phoneInput").value.trim();
+    let code = document.getElementById("codeInput").value.trim();
+
+    // ❌ مرحله 1: شماره
+    if(phone === ""){
+        alert("📱 Phone is required");
+        return;
+    }
+
+    // ❌ مرحله 2: ارسال کد
+    if(generatedCode === ""){
+        alert("📩 Please press Send Code first");
+        return;
+    }
+
+    // ❌ مرحله 3: کد
+    if(code === ""){
+        alert("🔢 Enter code");
+        return;
+    }
+
+    // ❌ اشتباه بودن کد
+    if(code !== generatedCode){
+        alert("❌ Wrong code");
+        return;
+    }
+
+    // ✔ موفقیت
+    document.getElementById("loginPanel").style.display = "none";
+
+    let userData = {
+        phone: phone
+    };
+
+    localStorage.setItem("user", JSON.stringify(userData));
+
+    updateLoginUI();
+
+    alert("Login success ✔");
+
+    // reset code بعد از ورود
+    generatedCode = "";
+};
+
+/* ================= UI ================= */
+function updateLoginUI(){
+
+    let user = JSON.parse(localStorage.getItem("user"));
+
+    if(user){
+
+        document.getElementById("loginBtn").innerText = user.phone;
+
+        document.getElementById("loginBtn").onclick = () => {
+            if(confirm("Logout?")){
+                localStorage.removeItem("user");
+                document.getElementById("loginBtn").innerText = "Login";
+                location.reload();
+            }
+        };
+
+    } else {
+        document.getElementById("loginBtn").innerText = "Login";
+    }
+}
+
+updateLoginUI();
+let startPoint = null;
+let endPoint = null;
+let routeLine = null;
+
+const API_KEY = "YOUR_ORS_API_KEY"; 
+// از openrouteservice.org بگیر
+
+/* OPEN PANEL */
+document.getElementById("routeBtn").onclick = () => {
+    document.getElementById("routePanel").style.display = "block";
+};
+
+/* CLOSE PANEL */
+document.getElementById("routeBack").onclick = () => {
+    document.getElementById("routePanel").style.display = "none";
+};
+
+/* MAP CLICK */
+map.on("click", function(e){
+
+    if(!startPoint){
+        startPoint = e.latlng;
+        L.marker(startPoint).addTo(map).bindPopup("Start").openPopup();
+        return;
+    }
+
+    if(!endPoint){
+        endPoint = e.latlng;
+        L.marker(endPoint).addTo(map).bindPopup("Destination").openPopup();
+    }
+
+});
+
+/* START ROUTE */
+document.getElementById("startRoute").onclick = async () => {
+
+    if(!startPoint || !endPoint){
+        alert("Select start and destination");
+        return;
+    }
+
+    let url = "https://api.openrouteservice.org/v2/directions/driving-car/geojson";
+
+    let body = {
+        coordinates: [
+            [startPoint.lng, startPoint.lat],
+            [endPoint.lng, endPoint.lat]
+        ]
+    };
+
+    try{
+
+        let res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Authorization": API_KEY,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
+
+        let data = await res.json();
+
+        let coords = data.features[0].geometry.coordinates;
+
+        let latlngs = coords.map(c => [c[1], c[0]]);
+
+        if(routeLine){
+            map.removeLayer(routeLine);
+        }
+
+        routeLine = L.polyline(latlngs, {
+            color: "blue",
+            weight: 5
+        }).addTo(map);
+
+        map.fitBounds(routeLine.getBounds());
+
+        document.getElementById("routeInfo").innerText =
+            "Route loaded ✔";
+
+    } catch(err){
+        console.log(err);
+        alert("Route failed");
+    }
+
+};
+</script>
+
+</body>
+</html>
