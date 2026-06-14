@@ -392,32 +392,62 @@ body{
     bottom:90px;
     right:20px;
 
-    width:55px;
-    height:55px;
+    width:60px;
+    height:60px;
+
     border-radius:50%;
 
     border:none;
-    background:#3498db;
+
+    background:rgba(255,255,255,0.45);
+
+backdrop-filter:blur(3px);
+-webkit-backdrop-filter:blur(3px);
+
+border:1px solid rgba(255,255,255,0.7);
+
+box-shadow:
+0 8px 20px rgba(0,0,0,0.2),
+0 0 10px rgba(255,255,255,0.3);
     color:white;
-    font-size:22px;
+
+    font-size:28px;
 
     z-index:99999;
+
     cursor:pointer;
+
     box-shadow:0 8px 20px rgba(0,0,0,0.3);
 }
-
 /* PANEL */
 #routePanel{
     position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
 
-    background:white;
+    bottom:90px; /* حدود یک انگشت بالاتر */
+    left:50%;
+
+    transform:translateX(-50%);
+
+    width:90%;
+    max-width:420px;
+
     display:none;
     z-index:999999;
-    padding:20px;
+
+    padding:18px;
+
+    background:rgba(255,255,255,0.15);
+
+    backdrop-filter:blur(15px);
+    -webkit-backdrop-filter:blur(15px);
+
+    border:1px solid rgba(255,255,255,0.3);
+
+    border-radius:24px;
+
+    box-shadow:0 10px 30px rgba(0,0,0,0.25);
+
+    color:white;
 }
 
 /* BACK BUTTON */
@@ -438,7 +468,8 @@ body{
 <div id="map"></div>
 
 <!-- Route Button -->
-<button id="routeBtn">🧭 Route</button>
+<button id="routeBtn">🛣️</button>
+
 
 <!-- TOOLS -->
 <div id="tools">
@@ -524,29 +555,11 @@ body{
 
     <button id="startRoute">Start Navigation</button>
 
+    <button id="resetRouteBtn">🗑 Reset</button>
+
     <div id="routeInfo"></div>
 
 </div>
-
-<!-- TEST BUTTON (for debug) -->
-<button
-id="routeBtnTest"
-style="
-position:fixed;
-right:20px;
-bottom:90px;
-width:60px;
-height:60px;
-border-radius:50%;
-background:red;
-color:white;
-z-index:99999999;
-border:none;
-">
-R
-</button>
-
-</body>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
@@ -554,7 +567,7 @@ R
 <script>
 /* ================= MAP ================= */
 let map = L.map('map').setView([32.4279,53.6880],5);
-
+let routeMode = false;
 let osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
 
 let osm2 = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
@@ -569,7 +582,31 @@ osm.on('tileerror', function(){
 
     console.log("OSM1 failed");
 
+
 });
+window.updateUser = function(lat, lon){
+
+    if(!window.map){
+        console.log("Map not ready yet");
+        return;
+    }
+
+    if(!window.userMarker){
+
+        window.userMarker = L.circleMarker([lat, lon], {
+            radius: 8,
+            color: "#3498db",
+            fillColor: "#3498db",
+            fillOpacity: 0.9
+        }).addTo(window.map);
+
+    } else {
+
+        window.userMarker.setLatLng([lat, lon]);
+
+    }
+};
+
 
 osm2.on('tileerror', function(){
 
@@ -596,6 +633,7 @@ document.getElementById("sat").onclick = ()=>{
 
 /* ================= MARKER ================= */
 let marker=null;
+
 
 /* ================= SEARCH (FIXED) ================= */
 function searchPlace(){
@@ -779,61 +817,104 @@ document.getElementById("googleBack").onclick = ()=>{
 };
 let tracking = false;
 let watchId = null;
+
 let userMarker = null;
+let lastLat = null;
+let lastLon = null;
+
+let routeCoords = [];
+let routeLine = null;
 
 document.getElementById("liveCompassBtn").onclick = () => {
 
     tracking = !tracking;
 
-    if(tracking){
-
-        if(!navigator.geolocation){
-            alert("GPS not supported");
-            return;
-        }
-
-        watchId = navigator.geolocation.watchPosition(
-        (pos)=>{
-
-            let lat = pos.coords.latitude;
-            let lon = pos.coords.longitude;
-
-            console.log("GPS:", lat, lon);
-
-            // زوم نرم روی کاربر
-            map.setView([lat, lon], 16, {animate:true});
-
-            // مارکر قبلی حذف شود
-            if(userMarker){
-                map.removeLayer(userMarker);
-            }
-
-            userMarker = L.marker([lat, lon])
-                .addTo(map)
-                .bindPopup("📡 You are here")
-                .openPopup();
-
-        },
-        (err)=>{
-            alert("GPS error: " + err.message);
-            console.log(err);
-        },
-        {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 10000
-        });
-
-        alert("📡 Tracking ON");
-
-    } else {
+    if(!tracking){
 
         if(watchId){
             navigator.geolocation.clearWatch(watchId);
+            watchId = null;
         }
 
+        console.log("GPS stopped");
         alert("📡 Tracking OFF");
+
+        return;
     }
+
+    if(!navigator.geolocation){
+        alert("GPS not supported");
+        return;
+    }
+
+    routeCoords = [];
+
+    watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+
+        let lat = pos.coords.latitude;
+        let lon = pos.coords.longitude;
+
+        console.log("GPS:", lat, lon);
+
+        // 📍 کاربر
+        if(!userMarker){
+
+            userMarker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: "user-icon",
+                    html: "📍➡️",
+                    iconSize: [30, 30]
+                })
+            }).addTo(map);
+
+        } else {
+            userMarker.setLatLng([lat, lon]);
+        }
+
+        // 🧭 دنبال کردن کاربر
+        map.setView([lat, lon], 16, {
+            animate: true
+        });
+
+        // 🟦 مسیر زنده
+        routeCoords.push([lat, lon]);
+
+        if(routeLine){
+            map.removeLayer(routeLine);
+        }
+
+        routeLine = L.polyline(routeCoords, {
+            color: "blue",
+            weight: 4
+        }).addTo(map);
+
+        // 🧭 جهت حرکت
+        if(lastLat !== null){
+
+            let angle = Math.atan2(
+                lon - lastLon,
+                lat - lastLat
+            ) * 180 / Math.PI;
+
+            console.log("Direction:", angle);
+        }
+
+        lastLat = lat;
+        lastLon = lon;
+
+    },
+    (err) => {
+        alert("GPS error: " + err.message);
+        console.log(err);
+    },
+    {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+    });
+
+    alert("📡 Tracking ON");
 };
 let generatedCode = "";
 let savedPhone = "";
@@ -933,35 +1014,39 @@ function updateLoginUI(){
 updateLoginUI();
 let startPoint = null;
 let endPoint = null;
-let routeLine = null;
 
-const API_KEY = "YOUR_ORS_API_KEY"; 
+const API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjE4MDUwNDg3NGVkODQ5NTY4ZjE5YjEwZTBiNGMyNDk2IiwiaCI6Im11cm11cjY0In0="; 
 // از openrouteservice.org بگیر
 
 /* OPEN PANEL */
 document.getElementById("routeBtn").onclick = () => {
     document.getElementById("routePanel").style.display = "block";
+    routeMode = true;
 };
 
 /* CLOSE PANEL */
 document.getElementById("routeBack").onclick = () => {
     document.getElementById("routePanel").style.display = "none";
+    routeMode = false;
 };
 
 /* MAP CLICK */
 map.on("click", function(e){
 
+    if(!routeMode) return; // فقط وقتی Route روشن است
+
     if(!startPoint){
         startPoint = e.latlng;
         L.marker(startPoint).addTo(map).bindPopup("Start").openPopup();
+        document.getElementById("routeInfo").innerText = "📍 Start selected";
         return;
     }
 
     if(!endPoint){
         endPoint = e.latlng;
         L.marker(endPoint).addTo(map).bindPopup("Destination").openPopup();
+        document.getElementById("routeInfo").innerText = "🏁 Destination selected";
     }
-
 });
 
 /* START ROUTE */
@@ -1017,6 +1102,40 @@ document.getElementById("startRoute").onclick = async () => {
         alert("Route failed");
     }
 
+};
+document.getElementById("resetRouteBtn").onclick = () => {
+
+    startPoint = null;
+    endPoint = null;
+
+    if(routeLine){
+        map.removeLayer(routeLine);
+        routeLine = null;
+    }
+
+    document.getElementById("routeInfo").innerText =
+    "Route cleared";
+
+};
+document.getElementById("resetRouteBtn").onclick = () => {
+
+    startPoint = null;
+    endPoint = null;
+
+    // حذف مسیر خطی
+    if(routeLine){
+        map.removeLayer(routeLine);
+        routeLine = null;
+    }
+
+    // حذف markerهای قبلی
+    map.eachLayer(layer => {
+        if(layer instanceof L.Marker){
+            map.removeLayer(layer);
+        }
+    });
+
+    document.getElementById("routeInfo").innerText = "Route reset ✔️";
 };
 </script>
 
