@@ -459,6 +459,27 @@ box-shadow:
     border-radius:10px;
     cursor:pointer;
 }
+.user-dot{
+    width:18px;
+    height:18px;
+    background:#2196f3;
+    border-radius:50%;
+    border:3px solid white;
+    box-shadow:0 0 15px rgba(33,150,243,.7);
+    position:relative;
+}
+
+.user-arrow{
+    position:absolute;
+    left:50%;
+    top:-12px;
+    transform:translateX(-50%);
+    width:0;
+    height:0;
+    border-left:7px solid transparent;
+    border-right:7px solid transparent;
+    border-bottom:14px solid #2196f3;
+}
 </style>
 </head>
 
@@ -860,17 +881,23 @@ document.getElementById("liveCompassBtn").onclick = () => {
         // 📍 کاربر
         if(!userMarker){
 
-            userMarker = L.marker([lat, lon], {
-                icon: L.divIcon({
-                    className: "user-icon",
-                    html: "📍➡️",
-                    iconSize: [30, 30]
-                })
-            }).addTo(map);
+    userMarker = L.marker([lat, lon], {
+        icon: L.divIcon({
+            className: "user-icon",
+            html: `
+            <div class="user-dot">
+                <div class="user-arrow"></div>
+            </div>
+            `,
+            iconSize: [24,24]
+        })
+    }).addTo(map);
 
-        } else {
-            userMarker.setLatLng([lat, lon]);
-        }
+} else {
+
+    userMarker.setLatLng([lat, lon]);
+
+}
 
         // 🧭 دنبال کردن کاربر
         map.setView([lat, lon], 16, {
