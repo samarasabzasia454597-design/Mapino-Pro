@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mapino Pro v2</title>
+<title>Mapino Pro(مپینو)</title>
 <link rel="icon" type="image/jpeg" href="photo.jpg">
+    <!-- این بخش برای گوگل است و در ظاهر سایت دیده نمی‌شود -->
+<meta name="description" content="مپینو (Mapino) - پلتفرم پیشرفته نقشه و ابزارهای جغرافیایی. شامل نقشه آنلاین، فلایت رادار، قطب‌نما و مدیریت داده‌های مکانی.">
+<meta name="keywords" content="Mapino, مپینو, نقشه, مپ, Map, آنلاین مپ, Flight Radar, هوش مصنوعی مپینو,نشان,مسیریابی,گوگل مپ,Google map ,Fast map,فلایت رادار, قطب نما, Compass, نقشه هوشمند, پروژه مپینو">
+<meta name="author" content="Mapino Team">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css"/>
 
@@ -889,16 +893,28 @@ document.getElementById("liveCompassBtn").onclick = () => {
 
     routeCoords = [];
 
-    watchId = navigator.geolocation.watchPosition(
+   watchId = navigator.geolocation.watchPosition(
 
     (pos) => {
+
+        // رد کردن GPSهای خیلی ضعیف
+        if(pos.coords.accuracy > 200){
+            console.log("Weak GPS:", pos.coords.accuracy);
+            return;
+        }
 
         let lat = pos.coords.latitude;
         let lon = pos.coords.longitude;
 
-        console.log("GPS:", lat, lon);
+        console.log(
+            "GPS:",
+            lat,
+            lon,
+            "Accuracy:",
+            pos.coords.accuracy
+        );
 
-        // 📍 ساخت یا آپدیت کاربر
+        // ساخت یا آپدیت مارکر
         if(!userMarker){
 
             userMarker = L.marker([lat, lon], {
@@ -906,9 +922,9 @@ document.getElementById("liveCompassBtn").onclick = () => {
                 icon: L.divIcon({
                     className: "user-icon",
                     html: `
-                    <div class="user-dot">
-                        <div class="user-arrow"></div>
-                    </div>
+                        <div class="user-dot">
+                            <div class="user-arrow"></div>
+                        </div>
                     `,
                     iconSize:[28,28]
                 })
@@ -916,58 +932,44 @@ document.getElementById("liveCompassBtn").onclick = () => {
             }).addTo(map);
 
         } else {
+
             userMarker.setLatLng([lat, lon]);
+
         }
 
-        // 🎯 Follow Me (مثل Google Maps)
+        // دنبال کردن کاربر
         if(followUser){
-            map.setView([lat, lon], map.getZoom(), {
-                animate:true
-            });
-        }
 
-        // 🟦 مسیر حرکت (Track)
-        routeCoords.push([lat, lon]);
+            map.setView(
+                [lat, lon],
+                map.getZoom(),
+                {
+                    animate:true
+                }
+            );
 
-        if(routeLine){
-            map.removeLayer(routeLine);
-        }
-
-        routeLine = L.polyline(routeCoords, {
-            color: "blue",
-            weight: 4
-        }).addTo(map);
-
-        // 🧭 جهت حرکت واقعی
-        if(routeCoords.length > 2){
-
-            let prev = routeCoords[routeCoords.length - 2];
-
-            let angle = Math.atan2(
-                lon - prev[1],
-                lat - prev[0]
-            ) * 180 / Math.PI;
-
-            console.log("Direction:", angle);
         }
 
     },
 
     (err) => {
+
         alert("GPS error: " + err.message);
         console.log(err);
+
     },
 
     {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 15000
-    });
+        timeout: 20000
+    }
 
-    alert("📡 Tracking ON");
+);
+
+alert("📡 Tracking ON");
+
 };
-
-
 // 📍 Follow / Unfollow (Google Maps style)
 function toggleFollow(){
     followUser = !followUser;
