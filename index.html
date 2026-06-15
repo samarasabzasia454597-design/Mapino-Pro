@@ -462,10 +462,10 @@ box-shadow:
 .user-dot{
     width:18px;
     height:18px;
-    background:#2196f3;
+    background:#ff0202;
     border-radius:50%;
     border:3px solid white;
-    box-shadow:0 0 15px rgba(33,150,243,.7);
+    box-shadow:0 0 15px rgba(246, 9, 17, 0.7);
     position:relative;
 }
 
@@ -478,7 +478,7 @@ box-shadow:
     height:0;
     border-left:7px solid transparent;
     border-right:7px solid transparent;
-    border-bottom:14px solid #2196f3;
+    border-bottom:14px solid #fa0404;
 }
 </style>
 </head>
@@ -840,12 +840,33 @@ let tracking = false;
 let watchId = null;
 
 let userMarker = null;
-let lastLat = null;
-let lastLon = null;
+let heading = 0;
+
+let followUser = true;
 
 let routeCoords = [];
 let routeLine = null;
 
+let lastLat = null;
+let lastLon = null;
+
+let destLat = null;
+let destLon = null;
+
+// 🧭 قطب‌نما (چرخش مثلث)
+window.addEventListener("deviceorientation", function(e){
+    heading = e.alpha || 0;
+
+    const arrow = document.querySelector(".user-arrow");
+
+    if(arrow){
+        arrow.style.transform =
+            "translateX(-50%) rotate(" + (-heading) + "deg)";
+    }
+
+});
+
+// 📡 دکمه اصلی GPS
 document.getElementById("liveCompassBtn").onclick = () => {
 
     tracking = !tracking;
@@ -857,9 +878,7 @@ document.getElementById("liveCompassBtn").onclick = () => {
             watchId = null;
         }
 
-        console.log("GPS stopped");
         alert("📡 Tracking OFF");
-
         return;
     }
 
@@ -871,6 +890,7 @@ document.getElementById("liveCompassBtn").onclick = () => {
     routeCoords = [];
 
     watchId = navigator.geolocation.watchPosition(
+
     (pos) => {
 
         let lat = pos.coords.latitude;
@@ -878,33 +898,35 @@ document.getElementById("liveCompassBtn").onclick = () => {
 
         console.log("GPS:", lat, lon);
 
-        // 📍 کاربر
+        // 📍 ساخت یا آپدیت کاربر
         if(!userMarker){
 
-    userMarker = L.marker([lat, lon], {
-        icon: L.divIcon({
-            className: "user-icon",
-            html: `
-            <div class="user-dot">
-                <div class="user-arrow"></div>
-            </div>
-            `,
-            iconSize: [24,24]
-        })
-    }).addTo(map);
+            userMarker = L.marker([lat, lon], {
 
-} else {
+                icon: L.divIcon({
+                    className: "user-icon",
+                    html: `
+                    <div class="user-dot">
+                        <div class="user-arrow"></div>
+                    </div>
+                    `,
+                    iconSize:[28,28]
+                })
 
-    userMarker.setLatLng([lat, lon]);
+            }).addTo(map);
 
-}
+        } else {
+            userMarker.setLatLng([lat, lon]);
+        }
 
-        // 🧭 دنبال کردن کاربر
-        map.setView([lat, lon], 16, {
-            animate: true
-        });
+        // 🎯 Follow Me (مثل Google Maps)
+        if(followUser){
+            map.setView([lat, lon], map.getZoom(), {
+                animate:true
+            });
+        }
 
-        // 🟦 مسیر زنده
+        // 🟦 مسیر حرکت (Track)
         routeCoords.push([lat, lon]);
 
         if(routeLine){
@@ -916,33 +938,41 @@ document.getElementById("liveCompassBtn").onclick = () => {
             weight: 4
         }).addTo(map);
 
-        // 🧭 جهت حرکت
-        if(lastLat !== null){
+        // 🧭 جهت حرکت واقعی
+        if(routeCoords.length > 2){
+
+            let prev = routeCoords[routeCoords.length - 2];
 
             let angle = Math.atan2(
-                lon - lastLon,
-                lat - lastLat
+                lon - prev[1],
+                lat - prev[0]
             ) * 180 / Math.PI;
 
             console.log("Direction:", angle);
         }
 
-        lastLat = lat;
-        lastLon = lon;
-
     },
+
     (err) => {
         alert("GPS error: " + err.message);
         console.log(err);
     },
+
     {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 10000
+        timeout: 15000
     });
 
     alert("📡 Tracking ON");
 };
+
+
+// 📍 Follow / Unfollow (Google Maps style)
+function toggleFollow(){
+    followUser = !followUser;
+    alert(followUser ? "📍 Follow ON" : "🧭 Free Mode");
+}
 let generatedCode = "";
 let savedPhone = "";
 
@@ -1153,6 +1183,7 @@ document.getElementById("resetRouteBtn").onclick = () => {
     if(routeLine){
         map.removeLayer(routeLine);
         routeLine = null;
+        
     }
 
     // حذف markerهای قبلی
